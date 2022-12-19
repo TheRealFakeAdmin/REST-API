@@ -1,7 +1,7 @@
 {
   "name": "rest_api",
   "version": "0.0.1",
-  "description": "Perosnal REST API for my home network.",
+  "description": "Personal REST API for my home network.",
   "main": "app.js",
   "scripts": {
     "start": "nodemon app.js"
