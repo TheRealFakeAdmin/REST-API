@@ -1,0 +1,22 @@
+{
+  "name": "rest_api",
+  "version": "0.0.1",
+  "description": "Perosnal REST API for my home network.",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js"
+  },
+  "keywords": [
+    "REST",
+    "API",
+    "REST-API"
+  ],
+  "author": "TheRealFakeAdmin",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "joi": "^17.7.0",
+    "mongoose": "^6.8.0"
+  }
+}
