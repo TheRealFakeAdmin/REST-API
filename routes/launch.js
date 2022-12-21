@@ -1,9 +1,17 @@
+require('dotenv').config();
 const router = require('express').Router();
 const https = require('https');
 
-const accessTimeout = 30000; // Timeout for Accessing RocketLaunch.Live
-let lastAccess = new Date(0).valueOf(),
-    lastResp = "";
+const accessTimeoutSec = Number(process.env.RLL_TIMEOUT); // Timeout for Accessing RocketLaunch.Live
+const accessTimeoutMsc = Number(process.env.RLL_TIMEOUT) * 1000;
+let lastAccess = {
+        next: new Date(0).valueOf(),
+        earliest: new Date(0).valueOf()
+    },
+    lastResp = {
+        next: "",
+        earliest: ""
+    };
 
 // Date Setup
 const wkds = [
@@ -90,13 +98,13 @@ function getLaunches (req, res, callback) {
 }
 
 /**
- * Parses data sent back from RocketLaunch.Live
+ * Parses data sent back from RocketLaunch.Live, returns next upcoming launch
  * @param {Express.Request} req 
  * @param {Express.Response} res 
  * @param {Object} resp 
  * @returns 
  */
-function parseData (req, res, resp) {
+function parseNext (req, res, resp) {
     let dt = Date.now(),
         chk = true,
         v,
@@ -127,7 +135,7 @@ function parseData (req, res, resp) {
         case "summary":
         case "text":
         default:
-            msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
+            msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket flying ${v.name} on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
             msg += ` This will launch out of ${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`
             if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.querySelector('body').innerText))</script>`; // If `?tts=true`, TTS the response.
             break;
@@ -135,27 +143,99 @@ function parseData (req, res, resp) {
     return msg;
 }
 
-const nextLaunch = (req, res) => {
+/**
+ * Parses data sent back from RocketLaunch.Live, returns earliest result
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @param {Object} resp 
+ * @returns 
+ */
+function parseEarliest (req, res, resp) {
+    let v = resp.result[0],
+        ln = v.win_open,
+        ld = new Date(ln),
+        msg = "";
 
+    res.setHeader("Source", "Data by RocketLaunch.Live"); // As long as RocketLaunch.Live is used, keep this message near the data.
+    
+    switch (req.query.type ? req.query.type.toLowerCase() : "") {
+        case "json":
+            msg = v;
+            break;
+        case "summary":
+        case "text":
+        default:
+            msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket flying ${v.name} on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
+            msg += ` This will launch out of ${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`
+            if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.querySelector('body').innerText))</script>`; // If `?tts=true`, TTS the response.
+            break;
+    }
+    return msg;
+}
+
+/**
+ * 
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns 
+ */
+const nextLaunch = (req, res) => {
     // Deal with Timeout
-    if ((Date.now() - accessTimeout < lastAccess)) { // If before timeout ends
-        res.status(401);
-        res.send(parseData(req, res, lastResp));
+    let toT = Date.now() - accessTimeoutMsc;
+    if ((toT < lastAccess.next)) { // If before timeout ends
+        res.setHeader("Cache-Control", `max-age=${accessTimeoutSec}, must-revalidate`);
+        res.setHeader("Age", String(accessTimeoutSec - Math.round((lastAccess.next - toT) / 1000)));
+        res.status(200);
+        res.send(parseNext(req, res, lastResp.next));
         return void(0);
     }
 
-    lastAccess = Date.now();
-
     // Continue if not Timeout
+    lastAccess.next = Date.now();
+
+    res.setHeader("Cache-Control", "no-cache");
+
     getLaunches(req, res, (resp) => {
-        lastResp = resp;
-        let msg = parseData(req, res, resp);
+        lastResp.next = resp;
+        let msg = parseNext(req, res, resp);
         
         res.send(msg);
     })
 };
 
-router.get('/', nextLaunch);
+
+/**
+ * 
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns 
+ */
+const earliestLaunch = (req, res) => {
+    // Deal with Timeout
+    let toT = Date.now() - accessTimeoutMsc;
+    if ((toT < lastAccess.earliest)) { // If before timeout ends
+        res.setHeader("Cache-Control", `max-age=${accessTimeoutSec}, must-revalidate`);
+        res.setHeader("Age", String(accessTimeoutSec - Math.round((lastAccess.earliest - toT) / 1000)));
+        res.status(200);
+        res.send(parseNext(req, res, lastResp.earliest));
+        return void(0);
+    }
+
+    // Continue if not Timeout
+    lastAccess.earliest = Date.now();
+
+    res.setHeader("Cache-Control", "no-cache");
+
+    getLaunches(req, res, (resp) => {
+        lastResp.earliest = resp;
+        let msg = parseNext(req, res, resp);
+        
+        res.send(msg);
+    })
+};
+
+
+router.get('/', earliestLaunch);
 
 router.get('/next', nextLaunch);
 
