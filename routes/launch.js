@@ -1,6 +1,10 @@
 const router = require('express').Router();
 const https = require('https');
 
+const accessTimeout = 30000; // Timeout for Accessing RocketLaunch.Live
+let lastAccess = new Date(0).valueOf(),
+    lastResp = "";
+
 // Date Setup
 const wkds = [
     "Sunday",
@@ -27,7 +31,12 @@ const mnths = [
     'December'
 ];
 
-function ordinal_suffix_of(i) {
+/**
+ * Adds the correct Ordinal Suffix to a number.
+ * @param {number} i - Whole Number
+ * @returns {string}
+ */
+function ordinal_suffix_of(i) { // src : https://gist.github.com/frank184/cb992e676e3aa85246dbcf1c2aaa3462
     var j = i % 10,
         k = i % 100;
     if (j == 1 && k != 11) {
@@ -42,7 +51,15 @@ function ordinal_suffix_of(i) {
     return i + "th";
 }
 
-function getLaunches (callback) {
+// The fun part
+
+/**
+ * Requests launch info from the RocketLaunch.Live, then feeds the raw data to the callback function
+ * @param {Express.Request} req
+ * @param {Express.Response} res
+ * @param {function} callback
+ */
+function getLaunches (req, res, callback) {
     https.get(
         "https://fdo.rocketlaunch.live/json/launches",
         {
@@ -50,49 +67,84 @@ function getLaunches (callback) {
                 "Authorization": `Bearer ${process.env.ROCKET_LAUNCH_LIVE}`
             }
         },
-        (res) => {
+        (rsp) => {
             let data = "";
 
-            res.on('data', d => {
+            rsp.on('data', d => {
                 data += d.toString('utf8');
             });
 
-            res.on('end', () => {
-                callback(data);
+            rsp.on('end', () => {
+                try {
+                    let resp = JSON.parse(data);
+                    callback(resp);
+                    return void(0);
+                } catch (e) {
+                    res.status(500);
+                    res.send("Error");
+                    return console.error(e);
+                }
             })
         }
     )
 }
 
-const nextLaunch = (req, rsp) => {
-    getLaunches((data) => {
-        let resp = JSON.parse(data),
-            dt = Date.now(),
-            chk = true,
-            v,
-            ln,
-            ld,
-            msg = "";
+function parseData (req, res, resp) {
+    let dt = Date.now(),
+        chk = true,
+        v,
+        ln,
+        ld,
+        msg = "";
 
-        for (v of resp.result) {
-            ln = v.win_open;
-            if (typeof ln === "string") {
-                ld = new Date(ln);
-                ln = ld.valueOf();
-                if (ln > dt) {
-                    chk = false;
-                    break;
-                }
+    for (v of resp.result) {
+        ln = v.win_open;
+        if (typeof ln === "string") {
+            ld = new Date(ln);
+            ln = ld.valueOf();
+            if (ln > dt) {
+                chk = false;
+                break;
             }
         }
+    }
 
-        if (chk) return;
+    if (chk) return;
 
-        msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
-        msg += ` This will launch out of ${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`
-        rsp.setHeader("Source", "Data by RocketLaunch.Live"); // As long as RocketLaunch.Live is used, keep this message near the data.
-        if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.querySelector('body').innerText))</script>`; // If `?tts=true`, TTS the response.
-        rsp.send(msg);
+    res.setHeader("Source", "Data by RocketLaunch.Live"); // As long as RocketLaunch.Live is used, keep this message near the data.
+    
+    switch (req.query.type ? req.query.type.toLowerCase() : "") {
+        case "json":
+            msg = v;
+            break;
+        case "summary":
+        case "text":
+        default:
+            msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
+            msg += ` This will launch out of ${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`
+            if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.querySelector('body').innerText))</script>`; // If `?tts=true`, TTS the response.
+            break;
+    }
+    return msg;
+}
+
+const nextLaunch = (req, res) => {
+
+    // Deal with Timeout
+    if ((Date.now() - accessTimeout < lastAccess)) { // If before timeout ends
+        res.status(401);
+        res.send(parseData(req, res, lastResp));
+        return void(0);
+    }
+
+    lastAccess = Date.now();
+
+    // Continue if not Timeout
+    getLaunches(req, res, (resp) => {
+        lastResp = resp;
+        let msg = parseData(req, res, resp);
+        
+        res.send(msg);
     })
 };
 
@@ -101,76 +153,3 @@ router.get('/', nextLaunch);
 router.get('/next', nextLaunch);
 
 module.exports = router;
-
-
-/*
-let resp = JSON.parse(data),
-                    dt = Date.now(),
-                    chk = true,
-                    v,
-                    ln,
-                    ld,
-                    msg = "";
-
-                for (v of resp.result) {
-                    ln = v.win_open;
-                    if (typeof ln === "string") {
-                        ld = new Date(ln);
-                        ln = ld.valueOf();
-                        if (ln > dt) {
-                            chk = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (chk) return;
-
-                msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.` // :${ld.getSeconds().toString().padStart(2, "0")}
-                rsp.send(msg);
-*/
-
-/*
-https.get(
-        "https://fdo.rocketlaunch.live/json/launches",
-        {
-            headers: {
-                "Authorization": `Bearer ${process.env.ROCKET_LAUNCH_LIVE}`
-            }
-        },
-        (res) => {
-            let data = "";
-
-            res.on('data', d => {
-                data += d.toString('utf8');
-            });
-
-            res.on('end', () => {
-                let resp = JSON.parse(data),
-                    dt = Date.now(),
-                    chk = true,
-                    v,
-                    ln,
-                    ld,
-                    msg = "";
-
-                for (v of resp.result) {
-                    ln = v.win_open;
-                    if (typeof ln === "string") {
-                        ld = new Date(ln);
-                        ln = ld.valueOf();
-                        if (ln > dt) {
-                            chk = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (chk) return;
-
-                msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.` // :${ld.getSeconds().toString().padStart(2, "0")}
-                rsp.send(msg);
-            })
-        }
-    )
-*/
