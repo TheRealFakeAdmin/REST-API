@@ -6,6 +6,8 @@ const Joi = require('joi');
 const app = express();
 const PORT = process.env.PORT || 7378;
 
+process.env.TZ = process.env.TIMEZONE || process.env.TZ;
+
 const schema = Joi.object({
     token: Joi.string()
         .alphanum()
@@ -14,7 +16,6 @@ const schema = Joi.object({
         .required()
 })
 
-process.env.TZ = "US/Eastern";
 
 app.use(express.json());
 
@@ -25,9 +26,13 @@ const launchRoute = require('./routes/launch.js');
 
 const motd = require('./routes/motd.js');
 
+const test = require('./routes/auth_test.js');
+
 app.use('/api/launch', launchRoute);
 
 app.use('/', motd);
+
+app.use('/test', test);
 
 
 // End Setup //
