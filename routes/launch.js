@@ -89,6 +89,13 @@ function getLaunches (req, res, callback) {
     )
 }
 
+/**
+ * Parses data sent back from RocketLaunch.Live
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @param {Object} resp 
+ * @returns 
+ */
 function parseData (req, res, resp) {
     let dt = Date.now(),
         chk = true,
