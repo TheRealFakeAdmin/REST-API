@@ -2,6 +2,17 @@ require('dotenv').config();
 const router = require('express').Router();
 const https = require('https');
 
+const Joi = require('joi');
+const schema = Joi.object({
+    /* token: Joi.string()
+        .alphanum()
+        .min(16)
+        .max(64)
+        .required(), */
+    query: Joi.string()
+        .max(256)
+});
+
 const accessTimeoutSec = Number(process.env.RLL_TIMEOUT); // Timeout for Accessing RocketLaunch.Live
 const accessTimeoutMsc = Number(process.env.RLL_TIMEOUT) * 1000;
 let lastAccess = {
@@ -15,51 +26,6 @@ let lastAccess = {
         earliest: ""
     };
 
-// Date Setup
-const wkds = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday"
-];
-
-const mnths = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-];
-
-/**
- * Adds the correct Ordinal Suffix to a number.
- * @param {number} i - Whole Number
- * @returns {string}
- */
-function ordinal_suffix_of(i) { // src : https://gist.github.com/frank184/cb992e676e3aa85246dbcf1c2aaa3462
-    var j = i % 10,
-        k = i % 100;
-    if (j == 1 && k != 11) {
-        return i + "st";
-    }
-    if (j == 2 && k != 12) {
-        return i + "nd";
-    }
-    if (j == 3 && k != 13) {
-        return i + "rd";
-    }
-    return i + "th";
-}
 
 // The fun part
 
@@ -101,101 +67,11 @@ function getLaunches (req, res, callback) {
 }
 
 
-/**
- * Parses data sent back from RocketLaunch.Live, returns next upcoming launch
- * @param {Express.Request} req 
- * @param {Express.Response} res 
- * @param {Object} resp 
- * @returns
- */
-function parseList (req, res, resp) {
-    let lst = [];
-
-    for (v of resp.result) {
-        lst.push(`${v.vehicle.name} - ${v.name} - ${new Date(v.win_open)}`);
-    }
-
-    res.setHeader("Source", "Data by RocketLaunch.Live"); // As long as RocketLaunch.Live is used, keep this message near the data.
-
-    return lst;
-}
-
-
-/**
- * Parses data sent back from RocketLaunch.Live, returns next upcoming launch
- * @param {Express.Request} req 
- * @param {Express.Response} res 
- * @param {Object} resp 
- * @returns
- */
-function parseNext (req, res, resp) {
-    let dt = Date.now(),
-        chk = true,
-        v,
-        ln,
-        ld,
-        msg = "";
-
-    for (v of resp.result) {
-        ln = v.win_open;
-        if (typeof ln === "string") {
-            ld = new Date(ln);
-            ln = ld.valueOf();
-            if (ln > dt) {
-                chk = false;
-                break;
-            }
-        }
-    }
-
-    if (chk) return;
-
-    res.setHeader("Source", "Data by RocketLaunch.Live"); // As long as RocketLaunch.Live is used, keep this message near the data.
-    
-    switch (req.query.type ? req.query.type.toLowerCase() : "") {
-        case "json":
-            msg = v;
-            break;
-        case "summary":
-        case "text":
-        default:
-            msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket flying ${v.name} on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
-            msg += ` This will launch out of ${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`
-            if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.body.innerText))</script>`; // If `?tts=true`, TTS the response.
-            break;
-    }
-    return msg;
-}
-
-/**
- * Parses data sent back from RocketLaunch.Live, returns earliest result
- * @param {Express.Request} req 
- * @param {Express.Response} res 
- * @param {Object} resp 
- * @returns
- */
-function parseEarliest (req, res, resp) {
-    let v = resp.result[0],
-        ln = v.win_open,
-        ld = new Date(ln),
-        msg = "";
-
-    res.setHeader("Source", "Data by RocketLaunch.Live"); // As long as RocketLaunch.Live is used, keep this message near the data.
-    
-    switch (req.query.type ? req.query.type.toLowerCase() : "") {
-        case "json":
-            msg = v;
-            break;
-        case "summary":
-        case "text":
-        default:
-            msg += `There will be a ${v.weather_condition.toLowerCase()} launch of a ${v.provider.name} ${v.vehicle.name} rocket flying ${v.name} on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"}.`; // :${ld.getSeconds().toString().padStart(2, "0")}
-            msg += ` This will launch out of ${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`
-            if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.querySelector('body').innerText))</script>`; // If `?tts=true`, TTS the response.
-            break;
-    }
-    return msg;
-}
+const parseList = require('./launch_routes/list.js').list;
+const parseSelectList = require('./launch_routes/list.js').select;
+const parseNext = require('./launch_routes/next.js');
+const parseEarliest = require('./launch_routes/latest.js');
+const { isSchema } = require('joi');
 
 
 /**
@@ -210,7 +86,14 @@ const listLaunch = (req, res) => {
         res.setHeader("Cache-Control", `max-age=${accessTimeoutSec}, must-revalidate`);
         res.setHeader("Age", String(accessTimeoutSec - Math.round((lastAccess.list - toT) / 1000)));
         res.status(200);
-        res.send(parseList(req, res, lastResp.list));
+        switch (req.get('name') != undefined || "name" in req.query) {
+            case true:
+                res.send(parseSelectList(req, res, lastResp.list));
+                break;
+            case false:
+                res.send(parseList(req, res, lastResp.list));
+                break;
+        }
         return void(0);
     }
 
@@ -218,10 +101,20 @@ const listLaunch = (req, res) => {
     lastAccess.list = Date.now();
 
     res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Source", "Data by RocketLaunch.Live") // As long as RocketLaunch.Live is used, keep this message near the data.
 
     getLaunches(req, res, (resp) => {
         lastResp.list = resp;
-        let msg = parseList(req, res, resp);
+        let msg;
+
+        switch (req.get('name') != undefined || "name" in req.query) {
+            case true:
+                msg = parseSelectList(req, res, resp);
+                break;
+            case false:
+                msg = parseList(req, res, resp);
+                break;
+        }
         
         res.send(msg);
     })
