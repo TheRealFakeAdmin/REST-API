@@ -18,12 +18,16 @@ const accessTimeoutMsc = Number(process.env.RLL_TIMEOUT) * 1000;
 let lastAccess = {
         list: new Date(0).valueOf(),
         next: new Date(0).valueOf(),
-        earliest: new Date(0).valueOf()
+        earliest: new Date(0).valueOf(),
+        raw: new Date(0).valueOf(),
+        nextRaw: new Date(0).valueOf()
     },
     lastResp = {
         list: "",
         next: "",
-        earliest: ""
+        earliest: "",
+        raw: "",
+        nextRaw: ""
     };
 
 
@@ -71,6 +75,8 @@ const parseList = require('./launch_routes/list.js').list;
 const parseSelectList = require('./launch_routes/list.js').select;
 const parseNext = require('./launch_routes/next.js');
 const parseEarliest = require('./launch_routes/latest.js');
+const parseRaw = require('./launch_routes/raw.js');
+//const parseNextRaw = require('./launch_routes/nextRaw.js');
 const { isSchema } = require('joi');
 
 
@@ -165,7 +171,7 @@ const earliestLaunch = (req, res) => {
         res.setHeader("Cache-Control", `max-age=${accessTimeoutSec}, must-revalidate`);
         res.setHeader("Age", String(accessTimeoutSec - Math.round((lastAccess.earliest - toT) / 1000)));
         res.status(200);
-        res.send(parseNext(req, res, lastResp.earliest));
+        res.send(parseEarliest(req, res, lastResp.earliest));
         return void(0);
     }
 
@@ -176,7 +182,69 @@ const earliestLaunch = (req, res) => {
 
     getLaunches(req, res, (resp) => {
         lastResp.earliest = resp;
-        let msg = parseNext(req, res, resp);
+        let msg = parseEarliest(req, res, resp);
+        
+        res.send(msg);
+    })
+};
+
+
+/**
+ * 
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns
+ */
+const rawLaunch = (req, res) => {
+    // Deal with Timeout
+    let toT = Date.now() - accessTimeoutMsc;
+    if ((toT < lastAccess.raw)) { // If before timeout ends
+        res.setHeader("Cache-Control", `max-age=${accessTimeoutSec}, must-revalidate`);
+        res.setHeader("Age", String(accessTimeoutSec - Math.round((lastAccess.raw - toT) / 1000)));
+        res.status(200);
+        res.send(parseRaw(req, res, lastResp.raw));
+        return void(0);
+    }
+
+    // Continue if not Timeout
+    lastAccess.raw = Date.now();
+
+    res.setHeader("Cache-Control", "no-cache");
+
+    getLaunches(req, res, (resp) => {
+        lastResp.raw = resp;
+        let msg = parseRaw(req, res, resp);
+        
+        res.send(msg);
+    })
+};
+
+
+/**
+ * 
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns
+ */
+const nextRawLaunch = (req, res) => {
+    // Deal with Timeout
+    let toT = Date.now() - accessTimeoutMsc;
+    if ((toT < lastAccess.nextRaw)) { // If before timeout ends
+        res.setHeader("Cache-Control", `max-age=${accessTimeoutSec}, must-revalidate`);
+        res.setHeader("Age", String(accessTimeoutSec - Math.round((lastAccess.nextRaw - toT) / 1000)));
+        res.status(200);
+        res.send(parseNextRaw(req, res, lastResp.nextRaw));
+        return void(0);
+    }
+
+    // Continue if not Timeout
+    lastAccess.nextRaw = Date.now();
+
+    res.setHeader("Cache-Control", "no-cache");
+
+    getLaunches(req, res, (resp) => {
+        lastResp.nextRaw = resp;
+        let msg = parseNextRaw(req, res, resp);
         
         res.send(msg);
     })
@@ -188,6 +256,10 @@ router.get('/', earliestLaunch);
 router.get('/list', listLaunch);
 
 router.get('/next', nextLaunch);
+
+//router.get('/next/raw', nextRawLaunch);
+
+router.get('/raw', rawLaunch);
 
 /* const launchData = require('./launch_data.js');
 
