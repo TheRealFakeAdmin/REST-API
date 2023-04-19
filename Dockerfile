@@ -1,6 +1,6 @@
 # src : https://nodejs.org/en/docs/guides/nodejs-docker-webapp/#creating-a-dockerfile
 # Currently using Node LTS Gallium
-FROM node:lts-gallium
+FROM node:lts-hydrogen
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -11,8 +11,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install npm@^8
-# This should remove the outdated npm warning until v9
-RUN npm install -g npm@8
+# This should remove the outdated npm warning until v10
+RUN npm install -g npm@9
 
 # Install production dependencies
 RUN npm ci --omit=dev

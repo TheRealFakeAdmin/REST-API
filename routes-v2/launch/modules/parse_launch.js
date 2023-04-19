@@ -74,7 +74,7 @@ const parseSentence = (v, msg, twitch=false) => {
             break;
         case false:
         default:
-            msg += `There ${ld.valueOf() > dt.valueOf() ? "is" : "was"} a planned ${v.weather_condition !== null ? v.weather_condition.toLowerCase() : ""} launch of a${v.provider.name !== null ? " " + v.provider.name : ""}${v.vehicle.name ? " " + v.vehicle.name : ""} rocket flying ${v.name ? v.name : ""} on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"} ET.`; // :${ld.getSeconds().toString().padStart(2, "0")}
+            msg += `There ${ld.valueOf() > dt.valueOf() ? "is" : "was"} a planned ${v.weather_condition !== null ? v.weather_condition.toLowerCase() : ""} launch of a${v.provider.name !== null ? " " + v.provider.name : ""}${v.vehicle.name ? " " + v.vehicle.name : ""} rocket flying ${v.name ? v.name : ""} on ${wkds[ld.getDay()]}, ${mnths[ld.getMonth()]} ${ordinal_suffix_of(ld.getDate())} at ${ld.getHours() % 12 ? ld.getHours() % 12 : 12}:${ld.getMinutes().toString().padStart(2, "0")} ${(ld.getHours() < 12) ? "AM" : "PM"} ET.`; // :${ld.getSeconds().toString().padStart(2, "0")}
             msg += ` This should ${ld.valueOf() > dt.valueOf() ? "launch" : "have launched"} out of ${v.pad.name !== null ? v.pad.name + " at " : ""}${v.pad.location.name}${(v.pad.location.statename !== null || v.pad.location.country !== null) ? " in " : "."}${(v.pad.location.statename === null) ? "" : `${v.pad.location.statename}${(v.pad.location.country === null) ? "." : ", "}`} ${(v.pad.location.country === null) ? "" : v.pad.location.country + "."}`;
             break
     }
