@@ -1,5 +1,9 @@
 const router = require('express').Router();
 
+router.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    next();
+})
 
 const latest = require ('./launch/latest');
 router.get('/', latest);

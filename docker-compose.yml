@@ -1,5 +1,9 @@
-app:
-  build: .
-  restart: unless-stopped
-  ports:
-    - 7378:7378
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    restart: always
+    ports:
+      - 7378:7378

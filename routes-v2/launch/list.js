@@ -55,11 +55,11 @@ function listLoop (resp) {
 
 const list = async (req, res) => {
     const resp = await getLaunches(),
-    nme = getQuery(req, "name"),
-    jsn = getQuery(req, "type");
+    name = getQuery(req, "name"),
+    type = getQuery(req, "type");
     let lst = [];
 
-    switch (nme === undefined) {
+    switch (name === undefined) {
         case true: // Empty/No String --- First Run
             lst = listLoop(resp);
             lastList = lst;
@@ -68,14 +68,18 @@ const list = async (req, res) => {
         case false: // String --- Second Run
             lst = lastList.length > 0 ? lastList : listLoop(resp);
             
-            if (!lst.includes(nme)) return res.json({success: 0, errors: [ "Not a valid name" ]}); // Stop if error
-            if (["1", "true", "on"].includes(jsn)) return res.json(resp.result[lst.indexOf(nme)]);
+            if (!lst.includes(name)) return res.json({success: 0, errors: [ "Not a valid name" ]}); // Stop if error
 
-            let v = resp.result[lst.indexOf(nme)];
-            let msg = parseLaunch(v);
-            if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.body.innerText))</script>`; // If `?tts=true`, TTS the response.
-
-            res.send(msg);
+            switch (type) {
+                case "json":
+                    return res.json(resp.result[lst.indexOf(name)]);
+                default:
+                    let v = resp.result[lst.indexOf(name)];
+                    let msg = parseLaunch(v, undefined, ["on", "true", "1"].includes(req.query["twitch"]));
+                    if (req.query.tts === "true") msg += `<script>window.speechSynthesis.speak(new SpeechSynthesisUtterance(document.body.innerText))</script>`; // If `?tts=true`, TTS the response.
+                    return res.send(msg);
+            }
+            // if (["1", "true", "on"].includes(type)) return res.json(resp.result[lst.indexOf(name)]);
             break;
     }
 }

@@ -15,7 +15,11 @@ const requestMission = async function (missionId) {
     
                 rsp.on('end', () => {
                     try {
-                        let resp = JSON.parse(data);
+                        const d = JSON.parse(data),
+                        resp = {
+                            error: null,
+                            data: data
+                        };
                         resolve(resp);
                     } catch (e) {
                         resolve({error: e, data: data});

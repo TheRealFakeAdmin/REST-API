@@ -6,7 +6,7 @@
 
 # Rocket Launch Live :          https://rocketlaunch.live/
 
-ROCKET_LAUNCH_LIVE=
+ROCKET_LAUNCH_LIVE=3a2788a0-7932-4dcc-aad5-60baa147e628
 
 
 ### SETTINGS ###
@@ -15,28 +15,33 @@ ROCKET_LAUNCH_LIVE=
 # Timezone Override :    https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # This is useful for servers that have the timezone set to UTC (when not in UTC).
 
-TIMEZONE=
+TIMEZONE="Etc/UTC"
 
 
 # RocketLaunch.Live Timeout (in seconds)
 # RocketLaunch.Live is known to rate-limit users, caching is a proactive method to stop excess server calls.
 # NOTE : All clients share a timeout clock, the latest response is cached for all
 
-RLL_TIMEOUT=
+RLL_TIMEOUT=30
 
 
 # Database Info
 
-DB_PORT=
-DB_HOST=
-DB_USER=
-DB_PASSWORD=
-DB_DATABASE=
-DB_CONNECTION_LIMIT=
+DB_PORT=3307
+DB_HOST=localhost
+DB_USER=dd_user
+DB_PASSWORD=dp_password
+DB_DATABASE=db_database
+DB_CONNECTION_LIMIT=10
 
 
 # Twitch Auth
 
-TWITCH_CLIENT_ID=
-TWITCH_CLIENT_SECRET=
-TWITCH_BEARER_TOKEN=
+TWITCH_CLIENT_ID=username
+TWITCH_CLIENT_SECRET=secret
+TWITCH_BEARER_TOKEN=token
+
+
+# DeepL Translate :     https://www.deepl.com/docs-api/api-access/
+
+DEEPL_KEY=279a2e9d-83b3-c416-7e2d-f721593e42a0

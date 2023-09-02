@@ -70,7 +70,7 @@ const parseSentence = (v, msg, twitch=false) => {
 
     switch (twitch) {
         case true:
-            msg += `Next Launch Attempt:${v.provider.name !== null ? " " + v.provider.name : ""}${v.vehicle.name ? " " + v.vehicle.name : ""}${v.name ? " (" + v.name + ")" : ""}${v.pad.name !== null ? " from " + v.pad.name : ""}, ${v.pad.location.name} on ${twitchMnths[ld.getUTCMonth()]} ${ordinal_suffix_of(ld.getUTCDate())}, ${ld.getUTCHours().toString().padStart(2, "0")}:${ld.getUTCMinutes().toString().padStart(2, "0")} UTC`
+            msg += `Launch Attempt:${v.provider.name !== null ? " " + v.provider.name : ""}${v.vehicle.name ? " " + v.vehicle.name : ""}${v.name ? " (" + v.name + ")" : ""}${v.pad.name !== null ? " from " + v.pad.name : ""}, ${v.pad.location.name} on ${twitchMnths[ld.getUTCMonth()]} ${ordinal_suffix_of(ld.getUTCDate())}, ${ld.getUTCHours().toString().padStart(2, "0")}:${ld.getUTCMinutes().toString().padStart(2, "0")} UTC`
             break;
         case false:
         default:
