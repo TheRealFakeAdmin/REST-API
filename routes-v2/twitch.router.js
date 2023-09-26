@@ -1,13 +1,5 @@
 const router = require('express').Router();
 
-const stringifyQuery = (q) => {
-    let query = "?";
-    for (let k in q) {
-        query += `${k}=${q[k]}&`;
-    }
-    return query.replace(/[?&]$/, "");
-}
-
 const checkLive = require('./twitch/check_live');
 
 router.get('/up', (req, res) => {
@@ -16,7 +8,7 @@ router.get('/up', (req, res) => {
 
     checkLive(query, (err, resp) => {
         if (err !== null) {
-            res.send('An error has occured');
+            res.send('An error has occurred');
             return console.error(err);
         }
         res.send(resp);
@@ -25,24 +17,22 @@ router.get('/up', (req, res) => {
 
 const getEndpoint = require('./twitch/endpoint');
 
-router.get('/helix/:endpt/:endpt2?/:endpt3?', (req, res) => {
-    let p = req.params;
-    const query = stringifyQuery(req.query),
-    params = p["endpt"] + (p["endpt2"] ? `/${p["endpt2"]}` : "") + (p["endpt3"] ? `/${p["endpt3"]}` : "");
+router.get('/helix/:endpt/:endpt2?/:endpt3?', async (req, res) => {
+    let p = req.params;console.debug('helix');
+    const params = p["endpt"] + (p["endpt2"] ? `/${p["endpt2"]}` : "") + (p["endpt3"] ? `/${p["endpt3"]}` : "");
 
-    getEndpoint(params, query, (err, resp) => {
-        if (err !== null) {
-            res.send('An error has occured');
-            return console.error(err);
-        }
-        res.send(resp);
-    })
+    const twitchApiResponse = await getEndpoint(params, req.query);
+    res.send(twitchApiResponse);
 })
 
-const log = require('./twitch/log');
+// const log = require('./twitch/log');
 router.get('/log', (req, res) => {
-    log(req.ip, JSON.stringify(req.body));
+    console.log(req.ip, JSON.stringify(req.body));
     res.send();
 })
+
+
+const twitchOauth2 = require('./twitch/modules/twitch_oauth');
+router.use('/oauth2', twitchOauth2);
 
 module.exports = router;

@@ -1,47 +1,75 @@
 require('dotenv').config();
 
-const https = require('https');
-const checkTimeout = require('./modules/check_timeout');
+// const checkTimeout = require('./modules/check_timeout');
 
-const TwitchClientId = process.env.TWITCH_CLIENT_ID;
-const TwitchApiHost = "api.twitch.tv";
-const StreamApiEndpoint = "/helix/";
+const
+    twitchClientId = process.env.TWITCH_CLIENT_ID,
+    twitchApiHost = "https://api.twitch.tv",
+    twitchApiEndpoint = "/helix/";
 
-const getEndpoint = async (endpt, query, callback) => {
-    const options = {
-        hostname: TwitchApiHost,
-        port: 443,
-        path: StreamApiEndpoint + endpt + query,
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${process.env.TWITCH_BEARER_TOKEN}`,
-            'Client-Id': TwitchClientId
-        }
+const getEndpoint = async (endpoint, query) => {
+    const
+        twitchApiUrl = `${twitchApiHost}${twitchApiEndpoint}${endpoint}${stringifyQuery(query)}`,
+        twitchApiInit = {
+            method: 'GET',
+            headers: {
+                'Client-Id': twitchClientId,
+                'Authorization': query["ra_type"] === 'oauth' ? `Bearer ${process.env.TWITCH_OAUTH2_TOKEN}` : `Bearer ${process.env.TWITCH_BEARER_TOKEN}`
+            }
+        };console.debug(twitchApiUrl, twitchApiInit);
+
+    const twitchApiRequest = await fetch(twitchApiUrl, twitchApiInit);
+    const twitchApiResponse = await twitchApiRequest.text();
+
+    switch (twitchApiRequest.status) {
+        case 200:
+            return JSON.parse(twitchApiResponse);
+        default:
+            return twitchApiResponse;
     }
 
-    await checkTimeout.get(StreamApiEndpoint + endpt);
-
-    try {
-        https.get(options, (res) => {
-            let data = '';
-
-            checkTimeout.set(StreamApiEndpoint + endpt, res.headers);
-
-            res.on('data', (d) => {
-              data += d;
-            });
-
-            res.on('close', () => {
-                data = JSON.parse(data);
-                callback(null, data);
-            });
-          
-        }).on('error', (e) => {
-            callback(e, null);
-        });
-    } catch (e) {
-        callback(e, null);
-    }
+    // const options = {
+    //     hostname: twitchApiHost,
+    //     port: 443,
+    //     path: twitchApiEndpoint + endpoint + query,
+    //     method: 'GET',
+    //     headers: {
+    //         'Authorization': `Bearer ${process.env.TWITCH_OAUTH2_SCOPE || process.env.TWITCH_BEARER_TOKEN}`,
+    //         'Client-Id': twitchClientId
+    //     }
+    // }
+    //
+    // await checkTimeout.get(twitchApiEndpoint + endpoint);
+    //
+    // try {
+    //     https.get(options, (res) => {
+    //         let data = '';
+    //
+    //         checkTimeout.set(twitchApiEndpoint + endpoint, res.headers);
+    //
+    //         res.on('data', (d) => {
+    //           data += d;
+    //         });
+    //
+    //         res.on('close', () => {
+    //             data = JSON.parse(data);
+    //             callback(null, data);
+    //         });
+    //
+    //     }).on('error', (e) => {
+    //         callback(e, null);
+    //     });
+    // } catch (e) {
+    //     callback(e, null);
+    // }
 };
+
+const stringifyQuery = (q) => {
+    let query = "?";
+    for (let k in q) {
+        query += `${k}=${q[k]}&`;
+    }
+    return query.replace(/[?&]$/, "");
+}
 
 module.exports = getEndpoint;

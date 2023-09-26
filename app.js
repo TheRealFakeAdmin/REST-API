@@ -29,7 +29,7 @@ app.options('/*', (req, res) => {
     console.log(req.headers);
     res.setHeader("Allow", "GET, POST");
     res.send();
-})
+});
 
 const {deprecatedFull, deprecatedReplaced, deprecatedSoon, setVersion, generateParamsDictionary, logger} = require('./modules/v2/handlers');
 
@@ -77,6 +77,9 @@ app.use(generateParamsDictionary('timezones', 1), deprecatedFull, timezones);
 // const launch_clocks = require('./pages/launch_clocks.js');
 // app.use('/launch_clocks', launch_clocks);
 
+const twitchPage = require('./pages/twitch.page.js');
+app.use('/twitch', twitchPage);
+
 // const script = require('./pages/script.router');
 // app.get('/script', script);
 
@@ -98,8 +101,8 @@ const word = require('./routes-v2/word.router');
 app.use(generateParamsDictionary('word', 2), setVersion("0.0.1-dev"), word);
 
 
-// const twitch = require('./routes-v2/twitch.router');
-// app.use(generateParamsDictionary('twitch', 2), setVersion('0.0.1-dev'), twitch);
+const twitch = require('./routes-v2/twitch.router');
+app.use(generateParamsDictionary('twitch', 2), setVersion('0.0.2-dev'), twitch);
 
 
 const spacex = require('./routes-v2/spacex.router');
@@ -115,47 +118,6 @@ app.use(generateParamsDictionary('translate', 2), setVersion('0.0.1-dev'), trans
 const root = require('./pages/root'); // Send non-default error
 app.use('/*', root);
 
-// const TokenApiEndpoint = "/oauth2/token";
-// const TokenApiQuery = `?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials&redirect_uri=https://api.trfa.xyz/v2/twitch/log`;
-// const TokenHeaders = {
-//     'Content-Type' : 'application/x-www-form-urlencoded'
-// };
-
-// const twitchToken = () => {
-//     const options = {
-//         hostname: 'id.twitch.tv',
-//         port: 443,
-//         path: TokenApiEndpoint + TokenApiQuery,
-//         method: 'POST',
-//         headers: TokenHeaders
-//     }
-
-//     try {
-//         https.get(options, (res) => {
-//             let data = '';
-//             res.on('data', (d) => {
-//                 data += d;
-//             });
-
-//             res.on('end', () => {
-//                 data = JSON.parse(data);
-//                 //console.log(data["access_token"], data["expires_in"]);
-//                 if (res.statusCode === 200) {
-//                     process.env.TWITCH_BEARER_TOKEN = data["access_token"];
-//                     setTimeout(twitchToken, data["expires_in"]);
-//                 }
-//             })
-          
-//         }).on('error', (e) => {
-//             console.error(e);
-//         });
-//     } catch (e) {
-//         console.error(e);
-//     }
-// }
-
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}/v2`);
-
-    // twitchToken();
 })

@@ -4,11 +4,6 @@
 # reference them in your code with process.env.NAME
 
 
-# Rocket Launch Live :          https://rocketlaunch.live/
-
-ROCKET_LAUNCH_LIVE=3a2788a0-7932-4dcc-aad5-60baa147e628
-
-
 ### SETTINGS ###
 
 
@@ -16,6 +11,27 @@ ROCKET_LAUNCH_LIVE=3a2788a0-7932-4dcc-aad5-60baa147e628
 # This is useful for servers that have the timezone set to UTC (when not in UTC).
 
 TIMEZONE="Etc/UTC"
+
+
+# NTFY Authentication
+
+NTFY_TOKEN="tk_..."
+
+
+# Swagger Definitions :  https://swagger.io/docs/specification/basic-structure/
+
+SWAGGER_OPENAPI="3.0.3"
+SWAGGER_INFO_TITLE="REST API"
+SWAGGER_INFO_DESCRIPTION="Personal REST API for my home network."
+SWAGGER_INFO_VERSION="0.2.1"
+SWAGGER_INFO_CONTACT_NAME="The Real Fake Admin"
+SWAGGER_INFO_CONTACT_EMAIL="contact@trfa.xyz"
+
+
+# Rocket Launch Live :          https://rocketlaunch.live/
+
+ROCKET_LAUNCH_LIVE=3a2788a0-7932-4dcc-aad5-60baa147e628
+
 
 
 # RocketLaunch.Live Timeout (in seconds)
@@ -37,9 +53,19 @@ DB_CONNECTION_LIMIT=10
 
 # Twitch Auth
 
-TWITCH_CLIENT_ID=username
+TWITCH_CLIENT_ID=id
 TWITCH_CLIENT_SECRET=secret
+TWITCH_TOKEN_REDIRECT_URI=http://localhost:3000
+
+# [DON'T EDIT] Twitch Auth Backend [DON'T EDIT]
+
 TWITCH_BEARER_TOKEN=token
+TWITCH_AUTH_CODE=code
+TWITCH_OAUTH2_TOKEN=token
+TWITCH_OAUTH2_SCOPE=scope
+TWITCH_OAUTH2_EXPIRES=0
+TWITCH_OAUTH2_REFRESH_TOKEN=token
+TWITCH_OAUTH2_TYPE=bearer
 
 
 # DeepL Translate :     https://www.deepl.com/docs-api/api-access/
