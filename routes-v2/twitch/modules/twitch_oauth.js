@@ -119,7 +119,8 @@ const
     TokenApiEndpoint = "/oauth2/token",
     TokenApiQuery = `?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
     TokenHeaders = {
-        'Content-Type' : 'application/x-www-form-urlencoded'
+        'Content-Type'  : 'application/x-www-form-urlencoded',
+        'Sec-Fetch-Mode': 'cors',
     },
     twitchClientAuthUrl = `https://id.twitch.tv${TokenApiEndpoint}${TokenApiQuery}`,
     twitchClientAuthInit = {
