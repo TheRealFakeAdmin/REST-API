@@ -34,7 +34,7 @@ app.options('/*', (req, res) => {
 const {deprecatedFull, deprecatedReplaced, deprecatedSoon, setVersion, generateParamsDictionary, logger} = require('./modules/v2/handlers');
 
 app.all([ '/log/*', '/log' ], logger, setVersion('0.0.2-dev'), (req, res) => {
-    res.status(204).send();
+    res.status(200).send({success: 1});
 });
 
 const robots = require('./pages/robots');
