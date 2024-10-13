@@ -1,6 +1,6 @@
 # src : https://nodejs.org/en/docs/guides/nodejs-docker-webapp/#creating-a-dockerfile
 # Currently using Node LTS Hydrogen
-FROM node:lts-hydrogen
+FROM node:lts
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -12,7 +12,7 @@ COPY package*.json ./
 
 # Install npm@^8
 # This should remove the outdated npm warning until v10
-RUN [ "npm", "install", "npm@9", "-g" ]
+RUN [ "npm", "install", "npm@latest", "-g" ]
 
 # Bundle app source
 COPY . .
@@ -25,5 +25,5 @@ EXPOSE 7378
 
 # Run the service
 # Use node for production
-#CMD [ "node", "app.js" ]
-CMD [ "nodemon", "app.js" ]
+CMD [ "node", "app.js" ]
+#CMD [ "nodemon", "app.js" ]
