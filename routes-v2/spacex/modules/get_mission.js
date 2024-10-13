@@ -18,7 +18,7 @@ const requestMission = async function (missionId) {
                         const d = JSON.parse(data),
                         resp = {
                             error: null,
-                            data: data
+                            data: d
                         };
                         resolve(resp);
                     } catch (e) {
