@@ -32,7 +32,7 @@ timeline = async (req, res) => {
     postLaunchTimeline = mission?.postLaunchTimeline?.timelineEntries;
 
     if (t0Bool) {
-        if (hhmmss.test(preLaunchTimeline[0].time)) {console.log('preLaunch');
+        if (hhmmss.test(preLaunchTimeline[0].time)) {
             for (let i in preLaunchTimeline) {
                 let time = preLaunchTimeline[i].time,
                     isTime = hhmmss.test(preLaunchTimeline[i].time);
@@ -51,7 +51,7 @@ timeline = async (req, res) => {
             }
         }
 
-        if (hhmmss.test(postLaunchTimeline[0].time)) {console.log('postLaunch');
+        if (hhmmss.test(postLaunchTimeline[0].time)) {
             for (let i in postLaunchTimeline) {
                 let time = postLaunchTimeline[i].time,
                     isTime = hhmmss.test(postLaunchTimeline[i].time);
