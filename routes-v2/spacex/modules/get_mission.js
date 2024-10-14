@@ -1,68 +1,117 @@
-const https = require('https');
+const getMission = require('./modules/get_mission'),
 
-const cache = new Map();
+toUnixTimestamp = (time) => {
+    const hhmmss = /^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
 
-const requestMission = async function (missionId) {
-    const url = `https://content.spacex.com/api/spacex-website/missions/${missionId}`;
+    if (!hhmmss.test(time)) return null;
 
-    return new Promise ((resolve) => {
-        let data = "";
+    const [hours, minutes, seconds] = time.split(":").map(Number);
 
-        https.get(
-            url,
-            (rsp) => {
-                rsp.on('data', d => {
-                    data += d.toString('utf8');
-                });
-    
-                rsp.on('end', () => {
-                    try {
-                        const d = JSON.parse(data),
-                        resp = {
-                            error: null,
-                            data: d
-                        };
-                        resolve(resp);
-                    } catch (e) {
-                        resolve({error: e, data: data});
-                    }
-                })
+    const hoursInMilliseconds = hours * 60 * 60 * 1000;
+    const minutesInMilliseconds = minutes * 60 * 1000;
+    const secondsInMilliseconds = seconds * 1000;
+
+    return hoursInMilliseconds + minutesInMilliseconds + secondsInMilliseconds;
+},
+
+timeline = async (req, res) => {
+    const missionId = req.params["missionId"],
+        t0 = new Date(req.query["t0"]),
+        t0Bool = !isNaN(t0),
+        resp = await getMission(missionId),
+        mission = resp.data,
+        ary = [];
+
+    if (resp.error !== null) return res.send(resp);
+
+    let preLaunchTimeline = mission?.preLaunchTimeline?.timelineEntries,
+    postLaunchTimeline = mission?.postLaunchTimeline?.timelineEntries;
+
+    const hhmmss = /^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/;
+
+    if (hhmmss.test(preLaunchTimeline[0].time)) {
+        for (let i in preLaunchTimeline) {
+            let time = preLaunchTimeline[i].time,
+        if (hhmmss.test(preLaunchTimeline[0].time)) {console.log('preLaunch');
+            for (let i in preLaunchTimeline) {
+                let time = preLaunchTimeline[i].time,
+                    isTime = hhmmss.test(preLaunchTimeline[i].time);
+
+                switch (isTime) {
+                    case true:
+                        const timeRE = hhmmss.exec(time)[0],
+                            t = t0.getTime() - toUnixTimestamp(timeRE);
+                        preLaunchTimeline[i].ts = t;
+                        preLaunchTimeline[i].iso = new Date(t).toISOString();
+                        preLaunchTimeline[i].time = `T-${timeRE}`;
+                        break;
+                    case false:
+                        break;
+                }
             }
-        )
-    });
-}
+        }
 
+        if (hhmmss.test(postLaunchTimeline[0].time)) {console.log('postLaunch');
+            for (let i in postLaunchTimeline) {
+                let time = postLaunchTimeline[i].time,
+                    isTime = hhmmss.test(postLaunchTimeline[i].time);
 
-const getMission = async (missionId, cacheDurationMs=1800000) => { // 30 * 60 * 1000 = 30min
-    const currentTime = Date.now();
-
-    // Is missionId in cache and not expired?
-    if (cache.has(missionId)) {
-        const { data, expirationTime } = cache.get(missionId);
-        if (currentTime < expirationTime) {
-            // Cache is not stale, return data
-            console.log('Returning cached data for missionId:', missionId);
-            return { error: null, data };
-        } else {
-            // Cache is stale, remove it
-            cache.delete(missionId);
+                switch (isTime) {
+                    case true:
+                        const timeRE = hhmmss.exec(time)[0],
+                            t = t0.getTime() + toUnixTimestamp(timeRE);
+                        postLaunchTimeline[i].ts = t;
+                        postLaunchTimeline[i].iso = new Date(t).toISOString();
+                        postLaunchTimeline[i].time = `T+${timeRE}`;
+                        break;
+                case true:
+                    const t = t0.getTime() - toUnixTimestamp(time);
+                    preLaunchTimeline[i].ts = t;
+                    preLaunchTimeline[i].iso = new Date(t).toISOString();
+                    break;
+                case false:
+                    break;
+            }
+            preLaunchTimeline[i].time = `T-${preLaunchTimeline[i].time}`;
         }
     }
 
-    // If not in cache, get fresh data
-    console.log('Fetching new data for missionId:', missionId);
-    const result = await requestMission(missionId);
+    if (hhmmss.test(postLaunchTimeline[0].time)) {
+        for (let i in postLaunchTimeline) {
+            let time = postLaunchTimeline[i].time,
+                isTime = hhmmss.test(postLaunchTimeline[i].time);
 
-    // Store the result with expiration ts
-    if (!result.error) {
-        cache.set(missionId, {
-            data: result.data,
-            expirationTime: currentTime + cacheDurationMs
-        });
+            switch (t0Bool && isTime) {
+                case true:
+                    const t = t0.getTime() + toUnixTimestamp(time);
+                    postLaunchTimeline[i].ts = t;
+                    postLaunchTimeline[i].iso = new Date(t).toISOString();
+                    break;
+                case false:
+                    break;
+            }
+            postLaunchTimeline[i].time = `T+${postLaunchTimeline[i].time}`;
+        }
     }
 
-    return result;
+    if (Array.isArray(preLaunchTimeline))
+        ary.push(...preLaunchTimeline);
+
+    if (Array.isArray(postLaunchTimeline))
+        ary.push(...postLaunchTimeline);
+
+    ary.sort((a, b) => {
+        const an = Number(a.time),
+        bn = Number(b.time);
+        switch (Number.isNaN(an) && Number.isNaN(bn)) {
+            case true:
+                return;
+            case false:
+                return an > bn;
+        }
+    })
+
+    res.send(ary);
 };
 
-
-module.exports = getMission;
+module.exports = timeline;
