@@ -33,13 +33,14 @@ const requestMissionsList = async function (optional) {
                 rsp.on('end', () => {
                     try {
                         let resp = JSON.parse(data);
-                        resolve(resp);
+                        resolve({error: null, data: resp});
                     } catch (e) {
                         resolve({error: e, data: data});
                     }
                 })
             }
         )
+
     });
 }
 
