@@ -1,24 +1,9 @@
 const https = require('https');
 
-/**
- * @description List all missions currently in the SpaceX API (not all are present)
- * 
- * @param {Object.<boolean>} [optional]
- * @param {Boolean} [optional.all]
- * @param {Boolean} [optional.first]
- * @param {Boolean} [optional.next]
- * @param {Boolean} [optional.final]
- */
-const requestMissionsList = async function (optional) {
-    const url = `https://content.spacex.com/api/spacex-website/launches-page-tiles`;
+const cache = new Map();
 
-    if (optional?.all == true){}
-    else
-    if (optional?.first == true){}
-    else
-    if (optional?.next == true){}
-    else
-    if (optional?.final == true){};
+const requestMission = async function (missionId) {
+    const url = `https://content.spacex.com/api/spacex-website/missions/${missionId}`;
 
     return new Promise ((resolve) => {
         let data = "";
@@ -32,7 +17,11 @@ const requestMissionsList = async function (optional) {
     
                 rsp.on('end', () => {
                     try {
-                        let resp = JSON.parse(data);
+                        const d = JSON.parse(data),
+                        resp = {
+                            error: null,
+                            data: d
+                        };
                         resolve(resp);
                     } catch (e) {
                         resolve({error: e, data: data});
@@ -43,8 +32,36 @@ const requestMissionsList = async function (optional) {
     });
 }
 
-const listMissions = async function (optional) {
-    return await requestMissionsList(optional);
-}
 
-module.exports = listMissions;
+const getMission = async (missionId, cacheDurationMs=1800000) => { // 30 * 60 * 1000 = 30min
+    const currentTime = Date.now();
+
+    // Is missionId in cache and not expired?
+    if (cache.has(missionId)) {
+        const { data, expirationTime } = cache.get(missionId);
+        if (currentTime < expirationTime) {
+            // Cache is not stale, return data
+            console.log('Returning cached data for missionId:', missionId);
+            return { error: null, data };
+        } else {
+            // Cache is stale, remove it
+            cache.delete(missionId);
+        }
+    }
+
+    // If not in cache, get fresh data
+    console.log('Fetching new data for missionId:', missionId);
+    const result = await requestMission(missionId);
+
+    // Store the result with expiration ts
+    if (!result.error) {
+        cache.set(missionId, {
+            data: result.data,
+            expirationTime: currentTime + cacheDurationMs
+        });
+    }
+
+    return result;
+};
+
+module.exports = getMission;
