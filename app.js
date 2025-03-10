@@ -176,6 +176,40 @@ app.use(generateParamsDictionary('translate', 2), setVersion('0.0.1-dev'), trans
 const root = require('./pages/root'); // Send non-default error
 app.use('/*', root);
 
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/v2`);
-})
+// Crash Recovery Setup //
+
+let
+    server,
+    hasRestarted = 0;
+
+const startServer = () => {
+    server = app.listen(PORT, () => {
+        debug(`Server running at ${[process.env.ROOT_HOST]}:${PORT}/v2`);
+        debug(`Instance ${hasRestarted}/${process.env.MAX_CRASHES}`);
+    })
+}
+
+process.on('uncaughtException', (err) => {
+    debug('Uncaught Exception:', err.stack);
+    if (hasRestarted < Number(process.env.MAX_CRASHES)) {
+        hasRestarted += 1;
+        debug('[1/4] Attempting to restart the server after crash...');
+        if (server) {
+            debug('[2/4] Attempting to close all active connections...')
+            server.closeAllConnections();
+            debug('[3/4] Attempting to close server...')
+            server.close(() => {
+                debug('[4/4] Server closed. Restarting...');
+                startServer();
+            });
+        } else {
+            startServer();
+        }
+    } else {
+        debug('Restart already attempted. Exiting process.');
+        process.exit(1);
+    }
+});
+
+// Start the server for the first time
+startServer();

@@ -6,6 +6,18 @@
 
 ### SETTINGS ###
 
+# Debug Logs
+# See https://www.npmjs.com/package/debug for more info
+DEBUG="*,-express:*,-body-parser:*,follow-redirects:*"
+
+
+# API Root (no trailing /)
+ROOT_HOST=https://api.example.com
+
+
+# Max Number of Uncaught Errors Before Exiting
+MAX_CRASHES=Infinity
+
 
 # Timezone Override :    https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # This is useful for servers that have the timezone set to UTC (when not in UTC).
