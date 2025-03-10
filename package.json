@@ -5,7 +5,8 @@
     "main": "app.js",
     "scripts": {
         "start": "node app.js",
-        "dev": "nodemon app.js > nodemon.log 2>&1"
+        "dev": "nodemon app.js",
+        "headless": "nodemon app.js > nodemon.log 2>&1"
     },
     "keywords": [
         "REST",
