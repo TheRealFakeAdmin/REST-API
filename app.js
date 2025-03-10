@@ -54,8 +54,30 @@ app.use(favicon(path.join(__dirname, 'pages/favicon.ico')));
 
 app.use(responseTime());
 
+app.disable('x-powered-by');
+
+// FIXME : Does this function?
+// try {
+//     if ( ["on", "1", "true"].includes(process.env.BEHIND_PROXY.toLowerCase()) ) {
+//         app.set('trust "proxy', (ip) => {
+//             if ( process.env.TRUSTED_IPS.split(",").includes(ip) ) {
+//                 debug("Trust Proxy is enabled.");
+//                 return true;
+//             }
+//             debug("Trust Proxy is disabled.");
+//             return false;
+//         })
+//     }
+// } catch (err) {
+//     debug("Trust Proxy is disabled.");
+// }
+
 app.use((req, res, next) => {
-    res.setHeader("X-Robots-Tag", "noindex, nofollow").removeHeader('x-powered-by');
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+
+    const origin = req.get('origin');
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+
     next();
 });
 
