@@ -171,6 +171,19 @@ const translate = require('./routes-v2/translate.router');
 app.use(generateParamsDictionary('translate', 2), setVersion('0.0.1-dev'), translate);
 
 
+const time = require('./routes-v2/time.router');
+app.use(generateParamsDictionary('time', 2), setVersion('0.0.1-dev'), time);
+
+
+// const crash = (req, res) => {
+//     // res.status(302).send("Crashing");
+//     setTimeout(() => {
+//         throw new Error("Simulated uncaught exception");
+//     }, 0);
+// }
+// app.all('/v2/crash', crash);
+
+
 // End Setup //
 
 const root = require('./pages/root'); // Send non-default error

@@ -1,3 +1,4 @@
+const debug = require('debug')("app:v2:time:sync");
 const Microtime = require('microtime');
 const method = 2; // 0, 1, or 2
 
@@ -15,16 +16,17 @@ const getUnixTimeMicroseconds = () => {
 };
 
 const sync = (req, res) => {
+    // Extract t0 from query parameters
+    const t0 = parseInt(req.query.t0, 10); // t0 is provided in the query string
+    const currentTime = getUnixTimeMicroseconds(); // Server time when request is received
+
+    // Calculate time1 as the difference between server time and t0
+    const time1 = currentTime - t0; 
+    // Capture server time when sending the response
     const time2 = getUnixTimeMicroseconds();
-    res.json({ time2, time3: getUnixTimeMicroseconds() });
-    
-    // const { t1 } = req.body; // Client sends t1 in the request body
 
-    // const currentTime = getUnixTimeMicroseconds();
-    // const t2 = currentTime - t1; // Calculate time difference on the server
-    // const t3 = getUnixTimeMicroseconds(); // When the server responds
-
-    res.json({ time2: t2, time3: t3 });
-}
+    // Respond with both timestamps
+    res.json({ time1, time2 });
+};
 
 module.exports = sync;
