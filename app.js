@@ -84,7 +84,7 @@ app.use((req, res, next) => {
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.options('/*', (req, res) => {
-    console.log(req.headers);
+    debug(req.headers);
     res.setHeader("Allow", "GET, POST");
     res.send();
 });
